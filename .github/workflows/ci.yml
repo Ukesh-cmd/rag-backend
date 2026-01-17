@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  lint-node:
+    name: Node.js Lint & Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [auth-service, user-service]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          cd services/${{ matrix.service }}
+          npm install
+
+      - name: Run ESLint
+        run: |
+          cd services/${{ matrix.service }}
+          npx eslint . --ext .ts
+
+      - name: Run tests
+        run: |
+          cd services/${{ matrix.service }}
+          npm test
+
+  lint-python:
+    name: Python Lint & Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [file-service, rag-service, notification-service, analytics-service]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd services/${{ matrix.service }}
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Black (formatting)
+        run: |
+          cd services/${{ matrix.service }}
+          source venv/bin/activate
+          black --check .
+
+      - name: Run Flake8 (lint)
+        run: |
+          cd services/${{ matrix.service }}
+          source venv/bin/activate
+          flake8 .
+
+      - name: Run Tests
+        run: |
+          cd services/${{ matrix.service }}
+          source venv/bin/activate
+          pytest

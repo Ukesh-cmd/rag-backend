@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import axios from "axios";
-import { SERVICES } from "../utils/serviceRegistry";
 
 export const requirePermission = (permission: string) => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -8,21 +7,20 @@ export const requirePermission = (permission: string) => {
       return res.status(401).json({ error: "Unauthenticated" });
     }
 
-    const { role_id } = req.user;
+    try {
+      const response = await axios.get(
+        `http://user-service:3000/internal/permissions/${req.user.id}`
+      );
 
-    const response = await axios.get(
-      `${SERVICES.users}/roles/${role_id}/permissions`
-    );
+      const permissions: string[] = response.data;
 
-    const permissions = response.data;
-    const allowed = permissions.some(
-      (p: any) => p.name === permission
-    );
+      if (!permissions.includes(permission)) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
-    if (!allowed) {
-      return res.status(403).json({ error: "Forbidden" });
+      next();
+    } catch {
+      return res.status(500).json({ error: "RBAC check failed" });
     }
-
-    next();
   };
 };

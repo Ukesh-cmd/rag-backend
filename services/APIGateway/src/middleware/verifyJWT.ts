@@ -1,17 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
-export interface GatewayUser {
+interface GatewayUser {
   id: number;
   role_id: number;
-}
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: GatewayUser;
-    }
-  }
+  email: string;
 }
 
 export const verifyJWT = (
@@ -19,17 +12,21 @@ export const verifyJWT = (
   res: Response,
   next: NextFunction
 ) => {
-  const header = req.headers.authorization;
-  if (!header) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: "Missing Authorization header" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  if (!token) {
     return res.status(401).json({ error: "Missing token" });
   }
 
   try {
-    const token = header.split(" ")[1];
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET as string
-    ) as GatewayUser;
+      process.env.JWT_SECRET!
+    ) as JwtPayload & GatewayUser;
 
     req.user = decoded;
     next();

@@ -1,11 +1,9 @@
 import { Router } from 'express';
 import * as userController from '../controllers/userController';
-import { verifyJWT } from '../middleware/authMiddleware';
 import { requirePermission } from '../middleware/rbacMiddleware';
 
 const router = Router();
 
-router.use(verifyJWT);
 
 router.get('/roles', requirePermission('role:read'), userController.getRolesController);
 router.get('/roles/:roleId/permissions', requirePermission('role:read'), userController.getPermissionsController);
